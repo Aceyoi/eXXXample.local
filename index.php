@@ -13,6 +13,13 @@
         <div class="auth-container">
             <?php
             session_start();
+            require 'php/config.php';
+
+            // Проверка подключения
+            if (!isset($pdo)) {
+                die("Ошибка подключения к базе данных.");
+            }
+
             if (isset($_SESSION['username'])) {
                 echo '<span id="auth-link"><i class="fas fa-user"></i> ' . $_SESSION['nickname'] . '</span>';
                 echo '<div id="user-menu">
@@ -31,7 +38,7 @@
     <main>
         <aside class="sidebar">
             <div class="search-container">
-                <form id="search-form" method="GET" action="index.php">
+                <form id="search-form" method="GET" action="php/search.php">
                     <input type="text" id="search-input" name="query" placeholder="Поиск...">
                     <button type="submit"><i class="fas fa-search"></i></button>
                 </form>
@@ -67,66 +74,63 @@
             <div id="slider-and-offers">
                 <section id="slider">
                     <div class="slider-container">
-                        <div class="slide" style="background-image: url('images/slide1.jpg');"></div>
-                        <div class="slide" style="background-image: url('images/slide2.jpg');"></div>
-                        <div class="slide" style="background-image: url('images/slide3.jpg');"></div>
+                        <?php
+                        $sql = "SELECT * FROM actions";
+                        $stmt = $pdo->query($sql);
+                        $actions = $stmt->fetchAll();
+                        foreach ($actions as $action) {
+                            echo '<div class="slide" style="background-image: url(\'images/' . $action['image'] . '\');"></div>';
+                        }
+                        ?>
                     </div>
                     <button class="slider-btn prev" onclick="prevSlide()">&#10094;</button>
                     <button class="slider-btn next" onclick="nextSlide()">&#10095;</button>
                 </section>
                 <section id="hot-offers">
-                    <div class="offer">
-                        <div class="offer-icon">
-                            <img src="images/icon1.png" alt="Иконка 1">
-                        </div>
-                        <div class="offer-details">
-                            <h3>Месяц камбеков</h3>
-                            <p>Максимальная скидка на книги Макса Яроса – с новинками!</p>
-                        </div>
-                    </div>
-                    <div class="offer">
-                        <div class="offer-icon">
-                            <img src="images/icon2.png" alt="Иконка 2">
-                        </div>
-                        <div class="offer-details">
-                            <h3>Книжный дозор</h3>
-                            <p>Делитесь впечатлениями, получайте бонусы!</p>
-                        </div>
-                    </div>
-                    <div class="offer">
-                        <div class="offer-icon">
-                            <img src="images/icon3.png" alt="Иконка 3">
-                        </div>
-                        <div class="offer-details">
-                            <h3>Приглашение на Чёрную пятницу</h3>
-                            <p>Приходите, чтобы зажечь выгоду!</p>
-                        </div>
-                    </div>
+                    <?php
+                    $sql = "SELECT * FROM offers";
+                    $stmt = $pdo->query($sql);
+                    $offers = $stmt->fetchAll();
+                    foreach ($offers as $offer) {
+                        echo '<div class="offer">';
+                        echo '<div class="offer-icon">';
+                        // Здесь можно добавить иконки для каждого предложения, если они есть
+                        echo '</div>';
+                        echo '<div class="offer-details">';
+                        echo '<h3>' . htmlspecialchars($offer['title']) . '</h3>';
+                        echo '<p>' . htmlspecialchars($offer['description']) . '</p>';
+                        echo '</div>';
+                        echo '</div>';
+                    }
+                    ?>
                 </section>
             </div>
             <section id="books">
                 <!-- Книги будут здесь -->
                 <?php
-                // Пример: Получение данных из базы данных
-                $books = [
-                    ['id' => 1, 'title' => 'Книга 1', 'author' => 'Автор 1', 'price' => 500],
-                    ['id' => 2, 'title' => 'Книга 2', 'author' => 'Автор 2', 'price' => 600],
-                    // Добавь больше книг по мере необходимости
-                ];
-
-                if (isset($_GET['query'])) {
-                    $query = strtolower($_GET['query']);
-                    $books = array_filter($books, function($book) use ($query) {
-                        return strpos(strtolower($book['title']), $query) !== false || strpos(strtolower($book['author']), $query) !== false;
-                    });
+                $query = isset($_GET['query']) ? $_GET['query'] : '';
+                $sql = "SELECT * FROM books";
+                if (!empty($query)) {
+                    $sql .= " WHERE title LIKE :query OR author LIKE :query OR genre LIKE :query";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute(['query' => '%' . $query . '%']);
+                } else {
+                    $stmt = $pdo->query($sql);
                 }
+                $books = $stmt->fetchAll();
 
-                foreach ($books as $book) {
-                    echo '<div>';
-                    echo '<h2>' . htmlspecialchars($book['title']) . '</h2>';
-                    echo '<p>' . htmlspecialchars($book['author']) . '</p>';
-                    echo '<p>' . htmlspecialchars($book['price']) . ' руб.</p>';
-                    echo '</div>';
+                if (!empty($books)) {
+                    foreach ($books as $book) {
+                        echo '<div>';
+                        echo '<h2>' . htmlspecialchars($book['title']) . '</h2>';
+                        echo '<p>' . htmlspecialchars($book['author']) . '</p>';
+                        echo '<p>' . htmlspecialchars($book['price']) . ' руб.</p>';
+                        echo '<p>' . htmlspecialchars($book['description']) . '</p>';
+                        echo '<p>' . htmlspecialchars($book['genre']) . '</p>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo 'Книги не найдены.';
                 }
                 ?>
             </section>

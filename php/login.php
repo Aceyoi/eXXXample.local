@@ -1,23 +1,19 @@
 <?php
 session_start();
+include 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // Пример: Проверка пользователя в базе данных
-    $users = [
-        ['username' => 'user1', 'password' => 'password1', 'nickname' => 'Nickname1'],
-        ['username' => 'user2', 'password' => 'password2', 'nickname' => 'Nickname2'],
-    ];
+    $sql = "SELECT * FROM users WHERE username = :username AND password = :password";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['username' => $username, 'password' => $password]);
+    $user = $stmt->fetch();
 
-    $user = array_filter($users, function($user) use ($username, $password) {
-        return $user['username'] === $username && $user['password'] === $password;
-    });
-
-    if (!empty($user)) {
+    if ($user) {
         $_SESSION['username'] = $username;
-        $_SESSION['nickname'] = $user[0]['nickname'];
+        $_SESSION['nickname'] = $user['nickname'];
         header('Location: ../index.php');
         exit();
     } else {

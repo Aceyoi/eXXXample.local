@@ -1,4 +1,6 @@
 <?php
+include 'config.php';
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nickname = $_POST['nickname'];
     $username = $_POST['username'];
@@ -10,23 +12,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
-    // Пример: Сохранение пользователя в базе данных
-    $users = [];
-    if (file_exists('users.json')) {
-        $users = json_decode(file_get_contents('users.json'), true);
-    }
+    $sql = "SELECT * FROM users WHERE username = :username";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['username' => $username]);
+    $existingUser = $stmt->fetch();
 
-    $existingUser = array_filter($users, function($user) use ($username) {
-        return $user['username'] === $username;
-    });
-
-    if (!empty($existingUser)) {
+    if ($existingUser) {
         header('Location: ../index.php?error=username_taken');
         exit();
     }
 
-    $users[] = ['username' => $username, 'password' => $password, 'nickname' => $nickname];
-    file_put_contents('users.json', json_encode($users));
+    $sql = "INSERT INTO users (nickname, username, password) VALUES (:nickname, :username, :password)";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['nickname' => $nickname, 'username' => $username, 'password' => $password]);
 
     header('Location: ../index.php?success=registration_success');
     exit();

@@ -140,10 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showAuthForm() {
-    const authForm = document.getElementById('auth-form');
-    authForm.style.display = 'block';
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('register-form').style.display = 'none';
+    document.getElementById('auth-form').style.display = 'block';
 }
 
 function showRegisterForm() {
@@ -152,17 +149,22 @@ function showRegisterForm() {
 }
 
 function showLoginForm() {
-    document.getElementById('login-form').style.display = 'block';
     document.getElementById('register-form').style.display = 'none';
+    document.getElementById('login-form').style.display = 'block';
 }
 
-function toggleUserMenu(event) {
-    event.stopPropagation();
-    const userMenu = document.getElementById('user-menu');
-    userMenu.style.display = userMenu.style.display === 'block' ? 'none' : 'block';
+let currentSlide = 0;
+
+function prevSlide() {
+    const slides = document.querySelectorAll('.slide');
+    slides[currentSlide].style.display = 'none';
+    currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+    slides[currentSlide].style.display = 'block';
 }
 
-function logout() {
-    document.getElementById('auth-link').innerHTML = `<a href="#" onclick="showAuthForm()">Войти</a>`;
-    document.getElementById('user-menu').style.display = 'none';
+function nextSlide() {
+    const slides = document.querySelectorAll('.slide');
+    slides[currentSlide].style.display = 'none';
+    currentSlide = (currentSlide + 1) % slides.length;
+    slides[currentSlide].style.display = 'block';
 }

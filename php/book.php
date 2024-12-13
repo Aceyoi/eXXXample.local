@@ -1,34 +1,33 @@
 <?php
 include 'config.php';
 
-$query = isset($_GET['query']) ? $_GET['query'] : '';
-$genre = isset($_GET['genre']) ? $_GET['genre'] : '';
+if (isset($_GET['id'])) {
+    $book_id = $_GET['id'];
+    $sql = "SELECT * FROM books WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $book_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-if (!empty($query)) {
-    $sql = "SELECT * FROM books WHERE title LIKE ? OR author LIKE ? OR genre LIKE ?";
-    $stmt = $conn->prepare($sql);
-    $likeQuery = '%' . $query . '%';
-    $stmt->bind_param("sss", $likeQuery, $likeQuery, $likeQuery);
-    $stmt->execute();
-    $result = $stmt->get_result();
-} elseif (!empty($genre)) {
-    $sql = "SELECT * FROM books WHERE genre = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $genre);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $book = $result->fetch_assoc();
+    } else {
+        echo "Книга не найдена.";
+        exit();
+    }
 } else {
-    $sql = "SELECT * FROM books";
-    $result = $conn->query($sql);
+    echo "Неверный запрос.";
+    exit();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результаты поиска - XXXBookShop</title>
+    <title><?php echo htmlspecialchars($book['title']); ?> - XXXBookShop</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -39,7 +38,6 @@ if (!empty($query)) {
             <div class="auth-container">
                 <?php
                 session_start();
-
                 if (isset($_SESSION['username'])) {
                     echo '<span id="auth-link"><i class="fas fa-user"></i> ' . $_SESSION['username'] . '</span>';
                     echo '<div id="user-menu">
@@ -56,60 +54,17 @@ if (!empty($query)) {
             </div>
         </header>
         <main>
-            <aside class="sidebar">
-                <div class="search-container">
-                    <form id="search-form" action="search.php" method="GET">
-                        <input type="text" id="search-input" name="query" placeholder="Поиск..." required>
-                        <button type="submit"><i class="fas fa-search"></i></button>
-                    </form>
+            <section id="book-details">
+                <div class="book-image">
+                    <img src="../images/<?php echo htmlspecialchars($book['image']); ?>" alt="<?php echo htmlspecialchars($book['title']); ?>">
                 </div>
-                <ul class="sidebar-menu">
-                    <li>
-                        <i class="fas fa-book"></i>
-                        <a href="../index.php">Книги</a>
-                    </li>
-                    <li id="categories-item">
-                        <i class="fas fa-list"></i>
-                        <a href="#">Категории</a>
-                        <ul class="submenu" id="categories-submenu">
-                            <?php
-                            $genresQuery = "SELECT DISTINCT genre FROM books";
-                            $genresResult = $conn->query($genresQuery);
-
-                            if ($genresResult->num_rows > 0) {
-                                while ($genreRow = $genresResult->fetch_assoc()) {
-                                    echo '<li><a href="search.php?genre=' . urlencode($genreRow['genre']) . '" class="genre-link"><i class="fas fa-book-open"></i> ' . htmlspecialchars($genreRow['genre']) . '</a></li>';
-                                }
-                            } else {
-                                echo '<li>Нет доступных жанров</li>';
-                            }
-                            ?>
-                        </ul>
-                    </li>
-                    <li>
-                        <i class="fas fa-tags"></i>
-                        <a href="#">Акции</a>
-                    </li>
-                </ul>
-            </aside>
-            <section id="books">
-                <div id="book-container">
-                    <?php
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo '<div class="book">';
-                            echo '<img src="../images/' . htmlspecialchars($row['image']) . '" alt="' . htmlspecialchars($row['title']) . '">';
-                            echo '<h3>' . htmlspecialchars($row["title"]) . '</h3>';
-                            echo '<p>' . htmlspecialchars($row['author']) . '</p>';
-                            echo '<p>' . htmlspecialchars($row['price']) . ' руб.</p>';
-                            echo '<p>' . htmlspecialchars($row['description']) . '</p>';
-                            echo '<p>' . htmlspecialchars($row['genre']) . '</p>';
-                            echo '</div>';
-                        }
-                    } else {
-                        echo 'Книги не найдены.';
-                    }
-                    ?>
+                <div class="book-info">
+                    <h2><?php echo htmlspecialchars($book['title']); ?></h2>
+                    <p><strong>Автор:</strong> <?php echo htmlspecialchars($book['author']); ?></p>
+                    <p><strong>Цена:</strong> <?php echo htmlspecialchars($book['price']); ?> руб.</p>
+                    <p><strong>Описание:</strong> <?php echo htmlspecialchars($book['description']); ?></p>
+                    <p><strong>Жанр:</strong> <?php echo htmlspecialchars($book['genre']); ?></p>
+                    <button class="buy-button">Купить</button>
                 </div>
             </section>
         </main>
